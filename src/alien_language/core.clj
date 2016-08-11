@@ -1,6 +1,6 @@
 (ns alien-language.core
   (:require [clojure.string :refer [split]]
-            [clojure.set :refer [intersection union]]))
+            [clojure.set :refer [intersection union difference]]))
 
 (defn lines [file] (-> file slurp (split #"\n")))
 
@@ -50,6 +50,23 @@
                                     to-come))
                (conj so-far current-letter)
                (rest to-come))))))
+
+
+(defn next-letter [observed-rels {preceding :gt following :lt} letters]
+  (filter (fn [letter]
+            (= (observed-rels letter)
+               {:gt (disj preceding letter)
+                :lt (disj following letter)}))
+          letters))
+
+(defn determine-order [rels letters]
+  (loop [order []
+         letters (set letters)]
+    (if (empty? letters)
+      order
+      (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
+        (recur (conj order (first next))
+               (disj letters (first next)))))))
 
 ;; CASES
 

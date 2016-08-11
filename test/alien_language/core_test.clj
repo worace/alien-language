@@ -26,4 +26,27 @@
           "y" {:gt #{"x" "z"} :lt #{}}}
          (order-relationships ["z" "x" "y"]))))
 
+(deftest picking-next-match-from-a-segment-based-on-relationships
+  (let [rels {"z" {:gt #{} :lt #{"x" "y"}}
+              "x" {:gt #{"z"} :lt #{"y"}}
+              "y" {:gt #{"x" "z"} :lt #{}}}]
+    (is (= ["z"]
+           (next-letter rels
+                        {:gt #{} :lt #{"z" "y" "x"}}
+                        #{"z" "y" "x"})))
+    (is (= ["x"]
+           (next-letter rels
+                        {:gt #{"z"} :lt #{"y" "x"}}
+                        #{"y" "x"})))
+    (is (= ["y"]
+           (next-letter rels
+                        {:gt #{"z" "x"} :lt #{"y"}}
+                        #{"y"})))))
+
+(deftest building-ordering-from-observed-order-rels
+  (let [rels {"z" {:gt #{} :lt #{"x" "y"}}
+              "x" {:gt #{"z"} :lt #{"y"}}
+              "y" {:gt #{"x" "z"} :lt #{}}}]
+    (is (= ["z" "x" "y"]
+           (determine-order rels #{"z" "x" "y"})))))
 
