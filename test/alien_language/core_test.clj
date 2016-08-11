@@ -62,8 +62,7 @@
 (deftest detecting-contradictory-relationships-when-rebuilding-order
   (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
               "x" {:gt #{"z"} :lt #{"z"}}}]
-    (is (= #{"z" "x"}
-           (contradictions rels)))))
+    (is (contradictory? rels))))
 
 (deftest overall-order-for-contradictory-output
   (let [rels {"z" {:gt #{"x"} :lt #{"x"}}

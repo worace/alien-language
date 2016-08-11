@@ -84,12 +84,13 @@
 
 (def any? (comp not empty?))
 
-(defn contradictions [rels]
+(defn contradictory? [rels]
   (->> rels
        (filter (fn [[letter {preceding :gt following :lt}]]
                  (any? (intersection preceding following))))
        (map first)
-       (set)))
+       set
+       any?))
 
 (defn ambiguous?
   "Ordering for a letter is ambiguous if we can't establish
@@ -102,15 +103,15 @@
           rels)))
 
 (defn determine-order [rels letters]
-  (if (any? (contradictions rels))
-    {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
-    (loop [order []
-           letters (set letters)]
-      (if (empty? letters)
-        order
-        (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
-          (recur (conj order (first next))
-                 (disj letters (first next))))))))
+  (cond
+    (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
+    :else (loop [order []
+                 letters (set letters)]
+            (if (empty? letters)
+              order
+              (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
+                (recur (conj order (first next))
+                       (disj letters (first next))))))))
 
 ;; CASES
 
