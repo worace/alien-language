@@ -15,3 +15,15 @@
          (ordering ["c" "b" "a"])))
   (is (= {:status "EXACT" :output "cba"}
          (ordering ["c" "b" "a" "a"]))))
+
+(deftest updating-order-relationships-for-samples
+  (is (= {:gt #{\a \b} :lt #{\d \e}}
+         (updated-rels \c blank-rels [\a \b] [\d \e]))))
+
+(deftest building-order-relationships-for-a-segment
+  (is (= {"z" {:gt #{} :lt #{"x" "y"}}
+          "x" {:gt #{"z"} :lt #{"y"}}
+          "y" {:gt #{"x" "z"} :lt #{}}}
+         (order-relationships ["z" "x" "y"]))))
+
+

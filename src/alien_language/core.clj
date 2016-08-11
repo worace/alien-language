@@ -1,5 +1,6 @@
 (ns alien-language.core
-  (:require [clojure.string :refer [split]]))
+  (:require [clojure.string :refer [split]]
+            [clojure.set :refer [intersection union]]))
 
 (defn lines [file] (-> file slurp (split #"\n")))
 
@@ -19,11 +20,55 @@
             (update positions letter conj position))
           {}
           (map vector segment (range (count segment))))
+
 (defn ordering [segment]
   (let [positions (zipmap segment (iterate inc 0))
         ordering (sort-by positions (set segment))]
     {:status "EXACT" :output (apply str ordering)}))
+
+(def blank-rels {:gt #{} :lt #{}})
+
+(defn updated-rels [letter rels so-far to-come]
+  (merge-with union
+              rels
+              {:gt (disj (set so-far) letter)
+               :lt (disj (set to-come) letter)}))
+
+(defn order-relationships [segment]
+  (loop [rels {}
+         so-far []
+         to-come segment]
+    (if (empty? to-come)
+      rels
+      (let [current-letter (first to-come)
+            current-rels (get rels current-letter blank-rels)]
+        (recur (assoc rels
+                      current-letter
+                      (updated-rels current-letter
+                                    current-rels
+                                    so-far
+                                    to-come))
+               (conj so-far current-letter)
+               (rest to-come))))))
+
 ;; CASES
+
+;; z
+;; x
+;; y
+
+;; layer 1 --
+;; z < x
+;; x < y
+
+;; produce the ordering of #{x y z}
+;; that satisifies those constraints
+;; {:z {:lt #{x y} :gt #{}}
+;;  :x {:gt #{z} :lt #{y}}
+;;  :y {:get #{x z} :lt #{}}
+;; }
+;; {:z {:lt x}}
+
 
 ;; 1 - Exact
 ;; output all letters in the order established by the sample
