@@ -87,7 +87,7 @@
   (is (= [["c" "h"]]
          (flatten-segments ["ce" "he"]))))
 
-(deftest observing-relations-for-multi-letter-words-segments
+(deftest merging-order-relationships-for-multi-letter-words
   ;; Given words:
   ;; ab
   ;; zb
@@ -104,4 +104,9 @@
           "a" {:gt #{} :lt #{"z"}}
           "c" {:gt #{"b"} :lt #{}}
           "b" {:gt #{} :lt #{"c"}}}
-         (order-relationships ["ab" "zb" "zc"]))))
+         (merged-order-relationships ["ab" "zb" "zc"]))))
+
+(deftest identifying-ambiguous-rels
+  (let [rels (merged-order-relationships ["ce" "he"])]
+    (is (ambiguous? rels #{"c" "e" "h"}))
+    (is (not (ambiguous? rels #{"c" "h"})))))

@@ -68,6 +68,12 @@
                (conj so-far current-letter)
                (rest to-come))))))
 
+(defn merged-order-relationships [words]
+  (->> words
+       flatten-segments
+       (map order-relationships)
+       (reduce (fn [left right] (merge-with union left right)))))
+
 
 (defn next-letter [observed-rels {preceding :gt following :lt} letters]
   (filter (fn [letter]
@@ -84,6 +90,16 @@
                  (any? (intersection preceding following))))
        (map first)
        (set)))
+
+(defn ambiguous?
+  "Ordering for a letter is ambiguous if we can't establish
+   its position relative to every other letter in the collection.
+   We can tell if this is the case by comparing the union of
+   the letters before and after it against the set of letters (minus itself)."
+  [rels letters]
+  (any? (filter (fn [[letter {preceding :gt following :lt}]]
+            (not (= (disj letters letter) (union preceding following))))
+          rels)))
 
 (defn determine-order [rels letters]
   (if (any? (contradictions rels))
