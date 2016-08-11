@@ -59,14 +59,25 @@
                 :lt (disj following letter)}))
           letters))
 
+(def any? (comp not empty?))
+
+(defn contradictions [rels]
+  (->> rels
+       (filter (fn [[letter {preceding :gt following :lt}]]
+                 (any? (intersection preceding following))))
+       (map first)
+       (set)))
+
 (defn determine-order [rels letters]
-  (loop [order []
-         letters (set letters)]
-    (if (empty? letters)
-      order
-      (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
-        (recur (conj order (first next))
-               (disj letters (first next)))))))
+  (if (any? (contradictions rels))
+    {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
+    (loop [order []
+           letters (set letters)]
+      (if (empty? letters)
+        order
+        (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
+          (recur (conj order (first next))
+                 (disj letters (first next))))))))
 
 ;; CASES
 

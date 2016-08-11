@@ -50,3 +50,24 @@
     (is (= ["z" "x" "y"]
            (determine-order rels #{"z" "x" "y"})))))
 
+(deftest observing-contradictory-order-relationships
+  ;; ["z" "x" "z"] -> Bad because:
+  ;; X appears both before and after Z
+  ;; or...
+  ;; Z appears both before and after X
+  (is (= {"z" {:gt #{"x"} :lt #{"x"}}
+          "x" {:gt #{"z"} :lt #{"z"}}}
+         (order-relationships ["z" "x" "z"]))))
+
+(deftest detecting-contradictory-relationships-when-rebuilding-order
+  (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
+              "x" {:gt #{"z"} :lt #{"z"}}}]
+    (is (= #{"z" "x"}
+           (contradictions rels)))))
+
+(deftest overall-order-for-contradictory-output
+  (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
+              "x" {:gt #{"z"} :lt #{"z"}}}]
+    (is (= {:status "INCONSISTENT" :output "xz"}
+           (determine-order rels ["z" "x" "z"])))))
+
