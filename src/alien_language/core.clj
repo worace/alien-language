@@ -26,6 +26,23 @@
         ordering (sort-by positions (set segment))]
     {:status "EXACT" :output (apply str ordering)}))
 
+(def seq->str (partial apply str))
+
+(defn next-layers [words]
+  (->> words
+       (group-by first)
+       (map last)
+       (map #(map rest %))
+       (map #(map seq->str %))))
+
+(defn flatten-segments [words]
+  (if (or (= 1 (count words)) (empty? words))
+    []
+    (let [this-layer (map str (map first words))
+          next-layers (next-layers words)]
+      (concat [this-layer]
+              (mapcat flatten-segments next-layers)))))
+
 (def blank-rels {:gt #{} :lt #{}})
 
 (defn updated-rels [letter rels so-far to-come]
@@ -81,9 +98,9 @@
 
 ;; CASES
 
-;; z
-;; x
-;; y
+;; ab
+;; zb
+;; zc
 
 ;; layer 1 --
 ;; z < x
