@@ -86,6 +86,69 @@
   (is (= [["c" "h"]]
          (flatten-segments ["ce" "he"]))))
 
+(def alphabet (map str (map char (range 97 123))))
+
+(def larger-sample ["armrest" "bewail" "castling" "dabs" "enroll"
+                    "flocking" "garbles" "hero" "injustices" "join" "kite"
+                    "ladle" "manual" "neckline" "oceanic" "parachuting"
+                    "quinine" "recklessly" "simmering" "tipped" "urban"
+                    "vector" "wainscotted" "xerography" "yacking" "zen"])
+
+(def mega-alphabet ["a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "a" "b" "b" "b" "b" "b" "b" "b" "b" "b" "b" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "c" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "d" "e" "e" "e" "e" "e" "e" "e" "e" "e" "e" "e" "e" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "f" "g" "g" "g" "g" "g" "g" "g" "g" "g" "g" "h" "h" "h" "h" "h" "h" "h" "i" "i" "i" "i" "i" "i" "i" "i" "i" "i" "i" "i" "j" "j" "j" "j" "j" "j" "k" "k" "k" "k" "k" "l" "l" "l" "l" "l" "m" "m" "m" "m" "m" "m" "m" "m" "m" "m" "m" "n" "n" "n" "n" "n" "o" "o" "o" "o" "o" "o" "o" "o" "o" "o" "o" "o" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "p" "q" "q" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "r" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "s" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "t" "u" "u" "u" "u" "u" "u" "u" "u" "u" "u" "u" "v" "v" "v" "w" "w" "w" "w" "w" "w" "x" "x" "y" "y" "z"])
+
+(deftest beefier-test
+  ;; Able to build proper ordering given whole alphabet in order...
+  (is (= {:status "EXACT" :output (apply str alphabet)}
+         (ordering-for-case alphabet)))
+  (is (= {:status "EXACT" :output (apply str alphabet)}
+         (ordering-for-case alphabet)))
+
+  ;; Able to build proper ordering for alphabet with repetitions
+  (is (= alphabet (first (flatten-segments larger-sample))))
+  (is (= {:status "EXACT" :output (apply str alphabet)}
+         (ordering-for-case mega-alphabet)))
+
+  ;; Able to build order for alphabetical list of words (1 for each letter)
+  (is (= {:status "EXACT" :output (apply str alphabet)}
+         (ordering-for-case larger-sample)))
+
+  (let [tricky ["aa" "ab" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m"
+                "n" "o" "p" "q" "r" "s" "t" "u" "v" "w" "x" "y" "z"]
+        tricky ["aa" "ab" "b" "c"]]
+    ;; (is (= (conj alphabet "a") (first (flatten-segments tricky))))
+    ;; (println "~~~~~~~~~~~~~~~~~~~~")
+    ;; (println (->> tricky
+    ;;          merged-order-relationships
+    ;;          (filter (fn [[letter {lt :lt gt :gt}]]
+    ;;                    (= 25 (count (clojure.set/union lt gt)))))
+    ;;          ))
+    ;; (println "~~~~~~~~~~~~~~~~~~~~")
+    ;; (println (merged-order-relationships tricky))
+    #_(is (= {:status "EXACT" :output (apply str alphabet)}
+           (ordering-for-case tricky)))
+    (is (= [["a" "a" "b" "c"] ["a" "b"]]
+           (flatten-segments tricky)))
+    (is (= {"a" {:gt #{} :lt #{"b" "c"}}
+            "b" {:gt #{"a"} :lt #{"c"}}
+            "c" {:gt #{"a" "b"} :lt #{}}}
+           (order-relationships (first (flatten-segments tricky)))))
+    (is (= {"a" {:gt #{} :lt #{"b"}}
+            "b" {:gt #{"a"} :lt #{}}}
+           (order-relationships (last (flatten-segments tricky)))))
+
+    (is (= {"a" {:gt #{} :lt #{"b" "c"}}
+            "b" {:gt #{"a"} :lt #{"c"}}
+            "c" {:gt #{"a" "b"} :lt #{}}}
+           (merge-order-relationships [{"a" {:gt #{} :lt #{"b" "c"}}
+                                        "b" {:gt #{"a"} :lt #{"c"}}
+                                        "c" {:gt #{"a" "b"} :lt #{}}}
+                                       {"a" {:gt #{} :lt #{"b"}}
+                                        "b" {:gt #{"a"} :lt #{}}}])))
+
+    (is (= {:status "EXACT" :output "abc"}
+         (ordering-for-case tricky))))
+  )
+
 (deftest merging-order-relationships-for-multi-letter-words
   ;; Given words:
   ;; ab

@@ -49,7 +49,6 @@
    However the single-letter ['b'] segment doesn't give us any useful info,
    so this function will ignore it."
   [words]
-  (println "flattening segments for " (count words) "... " (take 5 words))
   (if (or (= 1 (count words)) (empty? words))
     []
     (let [this-layer (map str (map first words))
@@ -70,7 +69,6 @@
   (loop [rels {}
          so-far []
          to-come segment]
-    (println "building rels for segment: " to-come)
     (if (empty? to-come)
       rels
       (let [current-letter (first to-come)
@@ -84,11 +82,23 @@
                (conj so-far current-letter)
                (rest to-come))))))
 
+(defn merge-order-relationships [rels-seq]
+  (reduce (fn [rels-a rels-b]
+            ;; {"a" {:gt #{...} :lt #{...}}}
+            ;; {"a" {:gt #{...} :lt #{...}}}
+            (merge-with (fn [letter-rels-a letter-rels-b]
+                          (merge-with union letter-rels-a letter-rels-b))
+                        rels-a rels-b))
+          rels-seq))
+
 (defn merged-order-relationships [words]
-  (->> words
-       flatten-segments
-       (map order-relationships)
-       (reduce (fn [left right] (merge-with union left right)))))
+  (let [fs (flatten-segments words)]
+    (->> #_words
+         #_flatten-segments
+         fs
+         (map order-relationships)
+         merge-order-relationships
+         )))
 
 
 (defn next-letter [observed-rels {preceding :gt following :lt} letters]
@@ -119,11 +129,16 @@
    the letters before and after it against the set of letters (minus itself)."
   [rels letters]
   (any? (filter (fn [[letter {preceding :gt following :lt}]]
-            (not (= (disj letters letter) (union preceding following))))
+                  (when (not (= (disj letters letter) (union preceding following)))
+                    (println "letter " letter "has prec" preceding "and fol" following)
+                    (println "all letters: " (disj letters letter)
+                             "vs accounted:" (union preceding following))
+                    (println "all rels: " rels)
+                    true)
+                    #_(do (println "Found ambiguity for letter: " letter "knows " (union preceding following) "Versus: " (disj letters letter))))
           rels)))
 
 (defn build-order [rels letters]
-  (println "BUILDING ORDER FOR" rels letters)
   (cond
     (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
     (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
@@ -171,12 +186,17 @@
 ;; 3 - Inconsistent / Contradictory
 ;; output the letters sorted by english
 
+(defn select-simple-words [words]
+  (filter (fn [w] (nil? (re-find #"[^a-z]" w)))
+          words))
+
+;; (def nice-words (-> dict-path lines select-simple-words))
+;; (spit "/tmp/nice-words.txt" (clojure.string/join \newline nice-words))
+
 (defn -main [& args]
   (->> "/usr/share/dict/words"
       lines
-      (map clojure.string/lower-case)
-      (random-sample 0.02)
-      println
+      select-simple-words
+      ;; (random-sample 0.0001)
       ;; ordering-for-case
-      ;; println
       ))
