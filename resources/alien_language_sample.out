@@ -1,0 +1,21 @@
+Case #1
+zxy
+EXACT
+Case #2
+ceh
+AMBIGUOUS
+Case #3
+bcdz
+INCONSISTENT
+Case #4
+xyz
+AMBIGUOUS
+Case #5
+hlu
+INCONSISTENT
+Case #6
+abc
+EXACT
+Case #7
+ej
+EXACT
