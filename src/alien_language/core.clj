@@ -1,5 +1,5 @@
 (ns alien-language.core
-  (:require [clojure.string :refer [split]]
+  (:require [clojure.string :refer [split join]]
             [clojure.set :refer [intersection union difference]]))
 
 (defn lines [file] (-> file slurp (split #"\n")))
@@ -186,48 +186,26 @@
 (defn ordering-for-case [words]
   (-> words
       merged-order-relationships
-      (build-order (letters words)))
-  )
-;; CASES
+      (build-order (letters words))))
 
-;; ab
-;; zb
-;; zc
+(defn format-case-result [number case-info]
+  (str "Case #" number \newline (:output case-info) \newline (:status case-info)))
 
-;; layer 1 --
-;; z < x
-;; x < y
-
-;; produce the ordering of #{x y z}
-;; that satisifies those constraints
-;; {:z {:lt #{x y} :gt #{}}
-;;  :x {:gt #{z} :lt #{y}}
-;;  :y {:get #{x z} :lt #{}}
-;; }
-;; {:z {:lt x}}
-
-
-;; 1 - Exact
-;; output all letters in the order established by the sample
-;; eg ["a" "b" "c"]
-;; 2 - Ambiguous
-;; output the letters sorted by english
-;; eg ["ce" "he"] => "ceh" (take all unique letters in the segment and sort them)
-;; 3 - Inconsistent / Contradictory
-;; output the letters sorted by english
+(defn infer-from-file [file]
+  (->> file
+      read-lexicon
+      (map ordering-for-case)
+      (map format-case-result (iterate inc 1))
+      (join \newline)))
 
 (defn select-simple-words [words]
-  (filter (fn [w] (nil? (re-find #"[^a-z]" w)))
-          words))
-
-;; (def nice-words (-> dict-path lines select-simple-words))
-;; (spit "/tmp/nice-words.txt" (clojure.string/join \newline nice-words))
-;; (->> nice-words (random-sample 0.004) ordering-for-case)
+  (filter (fn [w] (nil? (re-find #"[^a-z]" w))) words))
 
 (defn -main [& args]
+  (println "Attempting to order English using 5% sample from the dictionary...")
   (->> "/usr/share/dict/words"
       lines
       select-simple-words
-      ;; (random-sample 0.0001)
-      ;; ordering-for-case
-      ))
+      (random-sample 0.05)
+      ordering-for-case
+      println))

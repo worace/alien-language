@@ -182,9 +182,15 @@
   (is (= {:status "AMBIGUOUS" :output "xyz"}
          (ordering-for-case ["xy" "xyz"])))
   ;; TODO
-  #_(is (= {:status "INCONSISTENT" :output "hlu"}
-         (ordering-for-case ["hulu" "hlu"])))
+  (is (= {:status "INCONSISTENT" :output "hlu"}
+         (ordering-for-case ["hulu" "hul"])))
   (is (= {:status "EXACT" :output "abc"}
          (ordering-for-case ["a" "a" "b" "c"])))
   (is (= {:status "EXACT" :output "ej"}
          (ordering-for-case ["e" "je" "jj"]))))
+
+(deftest processing-whole-file
+  (println (slurp "./resources/alien_language_sample.out"))
+  (println (infer-from-file "./resources/alien_language_sample.in"))
+  (is (= (slurp "./resources/alien_language_sample.out")
+         (infer-from-file "./resources/alien_language_sample.in"))))
