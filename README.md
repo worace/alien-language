@@ -36,7 +36,7 @@ Building these relationships is the tricky part, but once I established them, I 
 about how thorough the information contained was:
 
 1. If any letter has overlap between the letters that precede it and the letters that follow it, that means the ordering is inconsistent
-2. If the union of preceding and following letters is not equal to the entire set of letters from the lexicon (minus the current letter itself), that means we don't have enough info to fully determine the order, so it is inconsistent
+2. If the union of preceding and following letters is not equal to the entire set of letters from the lexicon (minus the current letter itself), that means we don't have enough info to fully determine the order, so it is ambiguous
 3. Finally if neither of these are the case, we should have enough info to build a determinant ordering out of the observed order relationships
 
 ### Dealing with Stemming
