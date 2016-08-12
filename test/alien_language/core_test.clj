@@ -59,13 +59,21 @@
 (deftest detecting-contradictory-relationships-when-rebuilding-order
   (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
               "x" {:gt #{"z"} :lt #{"z"}}}]
-    (is (contradictory? rels))))
+    (is (contradictory? rels ["z" "x" "z"]))))
+
+(deftest detecting-contradictory-ordering-due-to-prefix-problems
+  (is (contradictory? {} ["hulu" "hul"])))
 
 (deftest overall-order-for-contradictory-output
   (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
               "x" {:gt #{"z"} :lt #{"z"}}}]
     (is (= {:status "INCONSISTENT" :output "xz"}
            (build-order rels ["z" "x" "z"])))))
+
+(deftest determining-substrings
+  (is (substring? "piz" "pizza"))
+  (is (not (substring? "pizza" "piz")))
+  (is (not (substring? "dog" "pizza"))))
 
 (deftest flattening-segments
   ;; Given words:
@@ -181,7 +189,6 @@
          (ordering-for-case ["zc" "bc" "zd"])))
   (is (= {:status "AMBIGUOUS" :output "xyz"}
          (ordering-for-case ["xy" "xyz"])))
-  ;; TODO
   (is (= {:status "INCONSISTENT" :output "hlu"}
          (ordering-for-case ["hulu" "hul"])))
   (is (= {:status "EXACT" :output "abc"}
@@ -190,7 +197,5 @@
          (ordering-for-case ["e" "je" "jj"]))))
 
 (deftest processing-whole-file
-  (println (slurp "./resources/alien_language_sample.out"))
-  (println (infer-from-file "./resources/alien_language_sample.in"))
   (is (= (slurp "./resources/alien_language_sample.out")
          (infer-from-file "./resources/alien_language_sample.in"))))

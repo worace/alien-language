@@ -147,17 +147,34 @@
 
 (def any? (comp not empty?))
 
+(defn substring? [string potential-parent]
+  (and (> (count potential-parent) (count string))
+       (= string (subs potential-parent 0 (count string)))))
+
+(defn prefixes-out-of-order? [words]
+  (loop [words-so-far #{}
+         words words
+         out-of-order false]
+    (cond
+      out-of-order true
+      (empty? words) false
+      :else (recur (conj words-so-far (first words))
+                   (rest words)
+                   (any? (filter (partial substring? (first words))
+                                 words-so-far))))))
+
 (defn contradictory?
   "Ordering for a letter is contradictory if it appears both before
    and after another letter -- i.e. if there is any intersection between the
    set of letters preceding it and the set following it."
-  [rels]
-  (->> rels
-       (filter (fn [[letter {preceding :gt following :lt}]]
-                 (any? (intersection preceding following))))
-       (map first)
-       set
-       any?))
+  [rels words]
+  (or (prefixes-out-of-order? words)
+      (->> rels
+           (filter (fn [[letter {preceding :gt following :lt}]]
+                     (any? (intersection preceding following))))
+           (map first)
+           set
+           any?)))
 
 (defn ambiguous?
   "Ordering for a letter is ambiguous if we can't establish
@@ -166,37 +183,34 @@
    the letters before and after it against the set of letters (minus itself)."
   [rels letters]
   (any? (filter (fn [[letter {preceding :gt following :lt}]]
-                  (when (not (= (disj letters letter) (union preceding following)))
-                    ;; (println "letter " letter "has prec" preceding "and fol" following)
-                    ;; (println "missing: " (difference (disj letters letter) (union preceding following)))
-                    ;; (println "all rels: " rels)
-                    true)
-                    #_(do (println "Found ambiguity for letter: " letter "knows " (union preceding following) "Versus: " (disj letters letter))))
+                  (not (= (disj letters letter) (union preceding following))))
           rels)))
-
-(defn build-order [rels letters]
-  (cond
-    (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
-    (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
-    :else (determinate-order rels letters)))
 
 (defn letters [words]
   (->> words (reduce concat) (map str) set))
 
+(defn build-order [rels words]
+  (let [letters (letters words)]
+    (cond
+      (contradictory? rels words) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
+      (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
+      :else (determinate-order rels letters))))
+
 (defn ordering-for-case [words]
   (-> words
       merged-order-relationships
-      (build-order (letters words))))
+      (build-order words)))
 
 (defn format-case-result [number case-info]
   (str "Case #" number \newline (:output case-info) \newline (:status case-info)))
 
 (defn infer-from-file [file]
-  (->> file
-      read-lexicon
-      (map ordering-for-case)
-      (map format-case-result (iterate inc 1))
-      (join \newline)))
+  (str (->> file
+            read-lexicon
+            (map ordering-for-case)
+            (map format-case-result (iterate inc 1))
+            (join \newline))
+       \newline))
 
 (defn select-simple-words [words]
   (filter (fn [w] (nil? (re-find #"[^a-z]" w))) words))
