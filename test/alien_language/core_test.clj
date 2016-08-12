@@ -17,33 +17,33 @@
          (ordering ["c" "b" "a" "a"]))))
 
 (deftest updating-order-relationships-for-samples
-  (is (= {:gt #{\a \b} :lt #{\d \e}}
+  (is (= {:preceding #{\a \b} :following #{\d \e}}
          (updated-rels \c blank-rels [\a \b] [\d \e]))))
 
 (deftest building-order-relationships-for-a-segment
-  (is (= {"z" {:gt #{} :lt #{"x" "y"}}
-          "x" {:gt #{"z"} :lt #{"y"}}
-          "y" {:gt #{"x" "z"} :lt #{}}}
+  (is (= {"z" {:preceding #{} :following #{"x" "y"}}
+          "x" {:preceding #{"z"} :following #{"y"}}
+          "y" {:preceding #{"x" "z"} :following #{}}}
          (order-relationships ["z" "x" "y"]))))
 
 (deftest picking-next-match-from-a-segment-based-on-relationships
-  (let [rels {"z" {:gt #{} :lt #{"x" "y"}}
-              "x" {:gt #{"z"} :lt #{"y"}}
-              "y" {:gt #{"x" "z"} :lt #{}}}]
+  (let [rels {"z" {:preceding #{} :following #{"x" "y"}}
+              "x" {:preceding #{"z"} :following #{"y"}}
+              "y" {:preceding #{"x" "z"} :following #{}}}]
     (is (= ["z"]
            (next-letter rels
-                        {:gt #{} :lt #{"z" "y" "x"}})))
+                        {:preceding #{} :following #{"z" "y" "x"}})))
     (is (= ["x"]
            (next-letter rels
-                        {:gt #{"z"} :lt #{"y" "x"}})))
+                        {:preceding #{"z"} :following #{"y" "x"}})))
     (is (= ["y"]
            (next-letter rels
-                        {:gt #{"z" "x"} :lt #{"y"}})))))
+                        {:preceding #{"z" "x"} :following #{"y"}})))))
 
 (deftest building-ordering-from-observed-order-rels
-  (let [rels {"z" {:gt #{} :lt #{"x" "y"}}
-              "x" {:gt #{"z"} :lt #{"y"}}
-              "y" {:gt #{"x" "z"} :lt #{}}}]
+  (let [rels {"z" {:preceding #{} :following #{"x" "y"}}
+              "x" {:preceding #{"z"} :following #{"y"}}
+              "y" {:preceding #{"x" "z"} :following #{}}}]
     (is (= {:status "EXACT", :output "zxy"}
            (build-order rels #{"z" "x" "y"})))))
 
@@ -52,21 +52,21 @@
   ;; X appears both before and after Z
   ;; or...
   ;; Z appears both before and after X
-  (is (= {"z" {:gt #{"x"} :lt #{"x"}}
-          "x" {:gt #{"z"} :lt #{"z"}}}
+  (is (= {"z" {:preceding #{"x"} :following #{"x"}}
+          "x" {:preceding #{"z"} :following #{"z"}}}
          (order-relationships ["z" "x" "z"]))))
 
 (deftest detecting-contradictory-relationships-when-rebuilding-order
-  (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
-              "x" {:gt #{"z"} :lt #{"z"}}}]
+  (let [rels {"z" {:preceding #{"x"} :following #{"x"}}
+              "x" {:preceding #{"z"} :following #{"z"}}}]
     (is (contradictory? rels ["z" "x" "z"]))))
 
 (deftest detecting-contradictory-ordering-due-to-prefix-problems
   (is (contradictory? {} ["hulu" "hul"])))
 
 (deftest overall-order-for-contradictory-output
-  (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
-              "x" {:gt #{"z"} :lt #{"z"}}}]
+  (let [rels {"z" {:preceding #{"x"} :following #{"x"}}
+              "x" {:preceding #{"z"} :following #{"z"}}}]
     (is (= {:status "INCONSISTENT" :output "xz"}
            (build-order rels ["z" "x" "z"])))))
 
@@ -124,7 +124,7 @@
     ;; (println "~~~~~~~~~~~~~~~~~~~~")
     ;; (println (->> tricky
     ;;          merged-order-relationships
-    ;;          (filter (fn [[letter {lt :lt gt :gt}]]
+    ;;          (filter (fn [[letter {lt :following gt :preceding}]]
     ;;                    (= 25 (count (clojure.set/union lt gt)))))
     ;;          ))
     ;; (println "~~~~~~~~~~~~~~~~~~~~")
@@ -133,22 +133,22 @@
            (ordering-for-case tricky)))
     (is (= [["a" "a" "b" "c"] ["a" "b"]]
            (flatten-segments tricky)))
-    (is (= {"a" {:gt #{} :lt #{"b" "c"}}
-            "b" {:gt #{"a"} :lt #{"c"}}
-            "c" {:gt #{"a" "b"} :lt #{}}}
+    (is (= {"a" {:preceding #{} :following #{"b" "c"}}
+            "b" {:preceding #{"a"} :following #{"c"}}
+            "c" {:preceding #{"a" "b"} :following #{}}}
            (order-relationships (first (flatten-segments tricky)))))
-    (is (= {"a" {:gt #{} :lt #{"b"}}
-            "b" {:gt #{"a"} :lt #{}}}
+    (is (= {"a" {:preceding #{} :following #{"b"}}
+            "b" {:preceding #{"a"} :following #{}}}
            (order-relationships (last (flatten-segments tricky)))))
 
-    (is (= {"a" {:gt #{} :lt #{"b" "c"}}
-            "b" {:gt #{"a"} :lt #{"c"}}
-            "c" {:gt #{"a" "b"} :lt #{}}}
-           (merge-order-relationships [{"a" {:gt #{} :lt #{"b" "c"}}
-                                        "b" {:gt #{"a"} :lt #{"c"}}
-                                        "c" {:gt #{"a" "b"} :lt #{}}}
-                                       {"a" {:gt #{} :lt #{"b"}}
-                                        "b" {:gt #{"a"} :lt #{}}}])))
+    (is (= {"a" {:preceding #{} :following #{"b" "c"}}
+            "b" {:preceding #{"a"} :following #{"c"}}
+            "c" {:preceding #{"a" "b"} :following #{}}}
+           (merge-order-relationships [{"a" {:preceding #{} :following #{"b" "c"}}
+                                        "b" {:preceding #{"a"} :following #{"c"}}
+                                        "c" {:preceding #{"a" "b"} :following #{}}}
+                                       {"a" {:preceding #{} :following #{"b"}}
+                                        "b" {:preceding #{"a"} :following #{}}}])))
 
     (is (= {:status "EXACT" :output "abc"}
          (ordering-for-case tricky))))
@@ -167,10 +167,10 @@
   ;; ["b"]
   ;; Then consider the relationships under z:
   ;; ["b" "c"]
-  (is (= {"z" {:gt #{"a"} :lt #{}}
-          "a" {:gt #{} :lt #{"z"}}
-          "c" {:gt #{"b"} :lt #{}}
-          "b" {:gt #{} :lt #{"c"}}}
+  (is (= {"z" {:preceding #{"a"} :following #{}}
+          "a" {:preceding #{} :following #{"z"}}
+          "c" {:preceding #{"b"} :following #{}}
+          "b" {:preceding #{} :following #{"c"}}}
          (merged-order-relationships ["ab" "zb" "zc"]))))
 
 (deftest identifying-ambiguous-rels
@@ -185,6 +185,8 @@
          (ordering-for-case ["z" "x"])))
   (is (= {:status "AMBIGUOUS" :output "ceh"}
          (ordering-for-case ["ce" "he"])))
+  (is (= {:status "AMBIGUOUS" :output "e"}
+         (ordering-for-case ["eeeee"])))
   (is (= {:status "INCONSISTENT" :output "bcdz"}
          (ordering-for-case ["zc" "bc" "zd"])))
   (is (= {:status "AMBIGUOUS" :output "xyz"}
@@ -198,4 +200,7 @@
 
 (deftest processing-whole-file
   (is (= (slurp "./resources/alien_language_sample.out")
-         (infer-from-file "./resources/alien_language_sample.in"))))
+         (infer-from-file "./resources/alien_language_sample.in")))
+  (do (spit "./resources/alien_language_final.out"
+            (infer-from-file "resources/alien_language_final.in")))
+  )

@@ -56,14 +56,14 @@
       (concat [this-layer]
               (mapcat flatten-segments next-layers)))))
 
-(def blank-rels {:gt #{} :lt #{}})
+(def blank-rels {:preceding #{} :following #{}})
 
 (defn updated-rels
   [letter rels so-far to-come]
   (merge-with union
               rels
-              {:gt (disj (set so-far) letter)
-               :lt (disj (set to-come) letter)}))
+              {:preceding (disj (set so-far) letter)
+               :following (disj (set to-come) letter)}))
 
 (defn order-relationships [segment]
   (loop [rels {}
@@ -86,14 +86,15 @@
   "Combine the order relationships created from multiple letter segments.
    We want to retain all of the relationships for each letter, so we union
    the appropriate keys together.
-   So one map of {b {:gt #{a} :lt #{c}}} and another of {b {:gt #{} #{d e}}}
-   will produce a single map {b {:get #{a} :lt #{c d e}}}"
+   So one map of {b {:preceding #{a} :following #{c}}} and another of {b {:gt #{} #{d e}}}
+   will produce a single map {b {:get #{a} :following #{c d e}}}"
   [rels-seq]
-  (reduce (fn [rels-a rels-b]
-            (merge-with (fn [letter-rels-a letter-rels-b]
-                          (merge-with union letter-rels-a letter-rels-b))
-                        rels-a rels-b))
-          rels-seq))
+  (if (empty? rels-seq) {}
+      (reduce (fn [rels-a rels-b]
+                (merge-with (fn [letter-rels-a letter-rels-b]
+                              (merge-with union letter-rels-a letter-rels-b))
+                            rels-a rels-b))
+              rels-seq)))
 
 (defn merged-order-relationships
   "Compile all the order-relationship info we can out of a sequence of
@@ -116,11 +117,11 @@
    represents all the remaining letters, so we're basically picking
    from the remaining which letter matches the current sequence
    of before and after."
-  [observed-rels {preceding :gt following :lt}]
+  [observed-rels {preceding :preceding following :following}]
   (filter (fn [letter]
             (= (observed-rels letter)
-               {:gt (disj preceding letter)
-                :lt (disj following letter)}))
+               {:preceding (disj preceding letter)
+                :following (disj following letter)}))
           following))
 
 (defn determinate-order
@@ -141,7 +142,7 @@
          letters (set letters)]
     (if (empty? letters)
       {:status "EXACT" :output (apply str order)}
-      (let [next (next-letter rels {:gt (set order) :lt letters})]
+      (let [next (next-letter rels {:preceding (set order) :following letters})]
         (recur (conj order (first next))
                (disj letters (first next)))))))
 
@@ -170,7 +171,7 @@
   [rels words]
   (or (prefixes-out-of-order? words)
       (->> rels
-           (filter (fn [[letter {preceding :gt following :lt}]]
+           (filter (fn [[letter {preceding :preceding following :following}]]
                      (any? (intersection preceding following))))
            (map first)
            set
@@ -182,9 +183,10 @@
    We can tell if this is the case by comparing the union of
    the letters before and after it against the set of letters (minus itself)."
   [rels letters]
-  (any? (filter (fn [[letter {preceding :gt following :lt}]]
-                  (not (= (disj letters letter) (union preceding following))))
-          rels)))
+  (or (empty? rels)
+      (any? (filter (fn [[letter {preceding :preceding following :following}]]
+                      (not (= (disj letters letter) (union preceding following))))
+                    rels))))
 
 (defn letters [words]
   (->> words (reduce concat) (map str) set))
