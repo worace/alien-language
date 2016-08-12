@@ -32,16 +32,13 @@
               "y" {:gt #{"x" "z"} :lt #{}}}]
     (is (= ["z"]
            (next-letter rels
-                        {:gt #{} :lt #{"z" "y" "x"}}
-                        #{"z" "y" "x"})))
+                        {:gt #{} :lt #{"z" "y" "x"}})))
     (is (= ["x"]
            (next-letter rels
-                        {:gt #{"z"} :lt #{"y" "x"}}
-                        #{"y" "x"})))
+                        {:gt #{"z"} :lt #{"y" "x"}})))
     (is (= ["y"]
            (next-letter rels
-                        {:gt #{"z" "x"} :lt #{"y"}}
-                        #{"y"})))))
+                        {:gt #{"z" "x"} :lt #{"y"}})))))
 
 (deftest building-ordering-from-observed-order-rels
   (let [rels {"z" {:gt #{} :lt #{"x" "y"}}

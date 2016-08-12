@@ -82,31 +82,68 @@
                (conj so-far current-letter)
                (rest to-come))))))
 
-(defn merge-order-relationships [rels-seq]
+(defn merge-order-relationships
+  "Combine the order relationships created from multiple letter segments.
+   We want to retain all of the relationships for each letter, so we union
+   the appropriate keys together.
+   So one map of {b {:gt #{a} :lt #{c}}} and another of {b {:gt #{} #{d e}}}
+   will produce a single map {b {:get #{a} :lt #{c d e}}}"
+  [rels-seq]
   (reduce (fn [rels-a rels-b]
-            ;; {"a" {:gt #{...} :lt #{...}}}
-            ;; {"a" {:gt #{...} :lt #{...}}}
             (merge-with (fn [letter-rels-a letter-rels-b]
                           (merge-with union letter-rels-a letter-rels-b))
                         rels-a rels-b))
           rels-seq))
 
-(defn merged-order-relationships [words]
-  (let [fs (flatten-segments words)]
-    (->> #_words
-         #_flatten-segments
-         fs
-         (map order-relationships)
-         merge-order-relationships
-         )))
+(defn merged-order-relationships
+  "Compile all the order-relationship info we can out of a sequence of
+   words.
+
+   Do this by:
+   1) producing all of possible the letter sequences out of the words
+   2) building the order relationships for each of these
+   3) merging these together"
+  [words]
+  (->> words
+       flatten-segments
+       (map order-relationships)
+       merge-order-relationships))
 
 
-(defn next-letter [observed-rels {preceding :gt following :lt} letters]
+(defn next-letter
+  "Choose the next letter that comes in order. Here 'preceding'
+   represents the letters we have ordered so far and 'following'
+   represents all the remaining letters, so we're basically picking
+   from the remaining which letter matches the current sequence
+   of before and after."
+  [observed-rels {preceding :gt following :lt}]
   (filter (fn [letter]
             (= (observed-rels letter)
                {:gt (disj preceding letter)
                 :lt (disj following letter)}))
-          letters))
+          following))
+
+(defn determinate-order
+  "Use the order relationship information we gathered to build
+   the ordering for the provided collection of letters.
+
+   The rels information provides for each letter the list of known
+   letters that precede and follow it. So as we walk through the letters
+   we can look at each point at
+
+   a) the letters whose ordering we have established so far and
+   b) the letters still to come
+
+   and pick the remaining letter which matches that set of preceding
+   and following letters."
+  [rels letters]
+  (loop [order []
+         letters (set letters)]
+    (if (empty? letters)
+      {:status "EXACT" :output (apply str order)}
+      (let [next (next-letter rels {:gt (set order) :lt letters})]
+        (recur (conj order (first next))
+               (disj letters (first next)))))))
 
 (def any? (comp not empty?))
 
@@ -130,10 +167,9 @@
   [rels letters]
   (any? (filter (fn [[letter {preceding :gt following :lt}]]
                   (when (not (= (disj letters letter) (union preceding following)))
-                    (println "letter " letter "has prec" preceding "and fol" following)
-                    (println "all letters: " (disj letters letter)
-                             "vs accounted:" (union preceding following))
-                    (println "all rels: " rels)
+                    ;; (println "letter " letter "has prec" preceding "and fol" following)
+                    ;; (println "missing: " (difference (disj letters letter) (union preceding following)))
+                    ;; (println "all rels: " rels)
                     true)
                     #_(do (println "Found ambiguity for letter: " letter "knows " (union preceding following) "Versus: " (disj letters letter))))
           rels)))
@@ -142,13 +178,7 @@
   (cond
     (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
     (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
-    :else (loop [order []
-                 letters (set letters)]
-            (if (empty? letters)
-              {:status "EXACT" :output (apply str order)}
-              (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
-                (recur (conj order (first next))
-                       (disj letters (first next))))))))
+    :else (determinate-order rels letters)))
 
 (defn letters [words]
   (->> words (reduce concat) (map str) set))
@@ -192,6 +222,7 @@
 
 ;; (def nice-words (-> dict-path lines select-simple-words))
 ;; (spit "/tmp/nice-words.txt" (clojure.string/join \newline nice-words))
+;; (->> nice-words (random-sample 0.004) ordering-for-case)
 
 (defn -main [& args]
   (->> "/usr/share/dict/words"
