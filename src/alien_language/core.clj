@@ -6,7 +6,12 @@
 
 (defn parse-int [string] (Integer/parseInt string))
 
-(defn read-lexicon [file]
+(defn read-lexicon
+  "Read the lexicon sample contained in an input file. If the file is
+   validly constructed we actually don't need the initial line telling
+   how many cases are included, so I discard that and then just read cases
+   until the end of the file."
+  [file]
   (loop [lines (->> file lines (drop 1)) ;; dont need the initial line with the count
          chunks []]
     (if (empty? lines)
@@ -16,11 +21,6 @@
         (recur (drop (inc count) lines)
                (conj chunks segment))))))
 
-#_(reduce (fn [positions [letter position]]
-            (update positions letter conj position))
-          {}
-          (map vector segment (range (count segment))))
-
 (defn ordering [segment]
   (let [positions (zipmap segment (iterate inc 0))
         ordering (sort-by positions (set segment))]
@@ -29,13 +29,25 @@
 (def seq->str (partial apply str))
 
 (defn next-layers [words]
+  "Produce the 'next layers' according to letter prefixes for
+   a group of words. Basically ['ab' 'zb' 'zc'] -> [['b'] ['b' 'c']]"
   (->> words
        (group-by first)
        (map last)
        (map #(map rest %))
        (map #(map seq->str %))))
 
-(defn flatten-segments [words]
+(defn flatten-segments
+  "A collection of words 'ab', 'zb', 'zc' potentially contains multiple
+   'segments' of ordering information, but the letter relationships need
+   to be grouped according to the prefix of letters that precede them.
+
+   So given the words 'ab', 'zb', 'zc', the segments of ordering info we
+   actually have to look at are ['a', 'z', 'z'], ['b'], ['b', 'c'].
+
+   However the single-letter ['b'] segment doesn't give us any useful info,
+   so this function will ignore it."
+  [words]
   (if (or (= 1 (count words)) (empty? words))
     []
     (let [this-layer (map str (map first words))
@@ -45,7 +57,8 @@
 
 (def blank-rels {:gt #{} :lt #{}})
 
-(defn updated-rels [letter rels so-far to-come]
+(defn updated-rels
+  [letter rels so-far to-come]
   (merge-with union
               rels
               {:gt (disj (set so-far) letter)
@@ -84,7 +97,11 @@
 
 (def any? (comp not empty?))
 
-(defn contradictory? [rels]
+(defn contradictory?
+  "Ordering for a letter is contradictory if it appears both before
+   and after another letter -- i.e. if there is any intersection between the
+   set of letters preceding it and the set following it."
+  [rels]
   (->> rels
        (filter (fn [[letter {preceding :gt following :lt}]]
                  (any? (intersection preceding following))))
