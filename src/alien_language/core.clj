@@ -32,6 +32,7 @@
   "Produce the 'next layers' according to letter prefixes for
    a group of words. Basically ['ab' 'zb' 'zc'] -> [['b'] ['b' 'c']]"
   (->> words
+       (filter #(> (count %) 1))
        (group-by first)
        (map last)
        (map #(map rest %))
@@ -119,17 +120,26 @@
             (not (= (disj letters letter) (union preceding following))))
           rels)))
 
-(defn determine-order [rels letters]
+(defn build-order [rels letters]
   (cond
     (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
+    (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
     :else (loop [order []
                  letters (set letters)]
             (if (empty? letters)
-              order
+              {:status "EXACT" :output (apply str order)}
               (let [next (next-letter rels {:gt (set order) :lt letters} letters)]
                 (recur (conj order (first next))
                        (disj letters (first next))))))))
 
+(defn letters [words]
+  (->> words (reduce concat) (map str) set))
+
+(defn ordering-for-case [words]
+  (-> words
+      merged-order-relationships
+      (build-order (letters words)))
+  )
 ;; CASES
 
 ;; ab
@@ -157,32 +167,3 @@
 ;; eg ["ce" "he"] => "ceh" (take all unique letters in the segment and sort them)
 ;; 3 - Inconsistent / Contradictory
 ;; output the letters sorted by english
-
-
-;; 7
-;; 3
-;; z
-;; x
-;; y
-;; 2
-;; ce
-;; he
-;; 3
-;; zc
-;; bc
-;; zd
-;; 2
-;; xy
-;; xyz
-;; 2
-;; hulu
-;; hul
-;; 4
-;; a
-;; a
-;; b
-;; c
-;; 3
-;; e
-;; je
-;; jj

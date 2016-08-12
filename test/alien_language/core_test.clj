@@ -3,12 +3,12 @@
             [alien-language.core :refer :all]))
 
 (deftest reads-an-input
-  (let [segments (read-lexicon "./resources/alien_language_sample.in")]
-    (is (= 7 (count segments)))
+  (let [cases (read-lexicon "./resources/alien_language_sample.in")]
+    (is (= 7 (count cases)))
     (is (= [3 2 3 2 2 4 3]
-           (map count segments)))
+           (map count cases)))
     (is (= ["z" "x" "y"]
-           (first segments)))))
+           (first cases)))))
 
 (deftest determines-order-for-exact-segment
   (is (= {:status "EXACT" :output "cba"}
@@ -47,8 +47,8 @@
   (let [rels {"z" {:gt #{} :lt #{"x" "y"}}
               "x" {:gt #{"z"} :lt #{"y"}}
               "y" {:gt #{"x" "z"} :lt #{}}}]
-    (is (= ["z" "x" "y"]
-           (determine-order rels #{"z" "x" "y"})))))
+    (is (= {:status "EXACT", :output "zxy"}
+           (build-order rels #{"z" "x" "y"})))))
 
 (deftest observing-contradictory-order-relationships
   ;; ["z" "x" "z"] -> Bad because:
@@ -68,7 +68,7 @@
   (let [rels {"z" {:gt #{"x"} :lt #{"x"}}
               "x" {:gt #{"z"} :lt #{"z"}}}]
     (is (= {:status "INCONSISTENT" :output "xz"}
-           (determine-order rels ["z" "x" "z"])))))
+           (build-order rels ["z" "x" "z"])))))
 
 (deftest flattening-segments
   ;; Given words:
@@ -109,3 +109,22 @@
   (let [rels (merged-order-relationships ["ce" "he"])]
     (is (ambiguous? rels #{"c" "e" "h"}))
     (is (not (ambiguous? rels #{"c" "h"})))))
+
+(deftest full-cycle-inferring-from-case
+  (is (= {:status "INCONSISTENT" :output "xz"}
+         (ordering-for-case ["z" "x" "z"])))
+  (is (= {:status "EXACT" :output "zx"}
+         (ordering-for-case ["z" "x"])))
+  (is (= {:status "AMBIGUOUS" :output "ceh"}
+         (ordering-for-case ["ce" "he"])))
+  (is (= {:status "INCONSISTENT" :output "bcdz"}
+         (ordering-for-case ["zc" "bc" "zd"])))
+  (is (= {:status "AMBIGUOUS" :output "xyz"}
+         (ordering-for-case ["xy" "xyz"])))
+  ;; TODO
+  #_(is (= {:status "INCONSISTENT" :output "hlu"}
+         (ordering-for-case ["hulu" "hlu"])))
+  (is (= {:status "EXACT" :output "abc"}
+         (ordering-for-case ["a" "a" "b" "c"])))
+  (is (= {:status "EXACT" :output "ej"}
+         (ordering-for-case ["e" "je" "jj"]))))
