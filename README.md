@@ -61,11 +61,11 @@ So:
 ```clojure
 ["aa" "ab" "b" "c"]
 
-becomes:
+;;becomes:
 
 [["a" "a" "b" "c"] ["a" "b"]]
 
-becomes:
+;;becomes:
 
 [{"a" {:preceding #{} :following #{"b" "c"}}
   "b" {:preceding #{"a"} :following #{"c"}}
@@ -75,6 +75,11 @@ becomes:
   "b" {:preceding #{"a"} :following #{}}}
   ;;(^^ another set of relationships for the second)
 ]
+
+;;becomes:
+{"a" {:preceding #{} :following #{"b" "c"}}
+ "b" {:preceding #{"a"} :following #{"c"}}
+ "c" {:preceding #{"a" "b"} :following #{}}}
 ```
 
 In this simple example the second set doesn't contain any new information not already represented in
