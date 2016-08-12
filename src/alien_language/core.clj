@@ -49,6 +49,7 @@
    However the single-letter ['b'] segment doesn't give us any useful info,
    so this function will ignore it."
   [words]
+  (println "flattening segments for " (count words) "... " (take 5 words))
   (if (or (= 1 (count words)) (empty? words))
     []
     (let [this-layer (map str (map first words))
@@ -69,6 +70,7 @@
   (loop [rels {}
          so-far []
          to-come segment]
+    (println "building rels for segment: " to-come)
     (if (empty? to-come)
       rels
       (let [current-letter (first to-come)
@@ -121,6 +123,7 @@
           rels)))
 
 (defn build-order [rels letters]
+  (println "BUILDING ORDER FOR" rels letters)
   (cond
     (contradictory? rels) {:status "INCONSISTENT" :output (apply str (sort (set letters)))}
     (ambiguous? rels letters) {:status "AMBIGUOUS" :output (apply str (sort (set letters)))}
@@ -167,3 +170,13 @@
 ;; eg ["ce" "he"] => "ceh" (take all unique letters in the segment and sort them)
 ;; 3 - Inconsistent / Contradictory
 ;; output the letters sorted by english
+
+(defn -main [& args]
+  (->> "/usr/share/dict/words"
+      lines
+      (map clojure.string/lower-case)
+      (random-sample 0.02)
+      println
+      ;; ordering-for-case
+      ;; println
+      ))
